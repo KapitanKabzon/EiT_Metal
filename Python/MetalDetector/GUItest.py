@@ -1,6 +1,6 @@
 
 
-from Tkinter import *
+from tkinter import *
 
 class App:
 
@@ -16,9 +16,14 @@ class App:
 
         self.hi_there = Button(frame, text="Hello", command=self.say_hi)
         self.hi_there.pack(side=LEFT)
+        self.fukoff=Button(frame, text="fukoff",command=self.fukoff)
+        self.fukoff.pack(side=LEFT)
 
     def say_hi(self):
-        print "hi there, everyone!"
+        print ("hi there, everyone!")
+    def fukoff(self):
+        print("modafuka")
+               
 
 root = Tk()
 
