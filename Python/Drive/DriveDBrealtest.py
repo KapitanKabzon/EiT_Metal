@@ -65,7 +65,7 @@ class ListBoxChoice(object):
         self.master.wait_window(self.modalPane)
         return self.value
 def Serialreader(threadName,value):
-    conn = sqlite3.connect('/media/chiungachanga/C7C3-942D/example6.db')
+    conn = sqlite3.connect('/media/chiungachanga/SanDisk/example6.db')
     c = conn.cursor()
     try:
             c.execute('''CREATE TABLE IF NOT EXISTS GPS
@@ -73,7 +73,7 @@ def Serialreader(threadName,value):
     except OperationalError:
             print('database exists')
     
-ppp    ser=serial.Serial(value,921600)
+    ser=serial.Serial(value,921600)
     h=0
     while(1):
         h=h+1
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     returnValue = True
     list = [port.device  for port in list_ports.comports()]
     while returnValue:
-        returnValue = ListBoxChoice(root, "Number Picking", "Pick one of these crazy random numbers", list).returnValue()
+        returnValue = ListBoxChoice(root, "Drive Test", "Pick one of these crazy random numbers", list).returnValue()
         _thread.start_new_thread( Serialreader, ("Thread-1", returnValue, ) )
 
        
