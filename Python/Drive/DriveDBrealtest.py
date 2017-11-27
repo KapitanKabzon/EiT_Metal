@@ -75,6 +75,7 @@ def Serialreader(threadName,value):
     
     ser=serial.Serial(value,921600)
     h=0
+    
     while(1):
         h=h+1
         line=ser.readline()

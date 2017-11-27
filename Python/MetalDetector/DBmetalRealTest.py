@@ -6,8 +6,7 @@ import numpy as np
 import _thread
 from serial.tools import list_ports
 import sqlite3
-
-
+global GPSline
 class ListBoxChoice(object):
     def __init__(self, master=None, title=None, message=None, list=[]):
         self.master = master
@@ -64,43 +63,60 @@ class ListBoxChoice(object):
     def returnValue(self):
         self.master.wait_window(self.modalPane)
         return self.value
-    """
+    
 def Serialreader(threadName,value):
     conn = sqlite3.connect('/media/chiungachanga/SanDisk/example7.db')
     c = conn.cursor()
-    try:
-        c.execute("CREATE TABLE IF NOT EXISTS pulse (position TEXT NOT NULL,gather TEXT NOT NULL)")
-    except OperationalError:
-        print('database exists')
-    
+    c.execute("CREATE TABLE IF NOT EXISTS pulse (position TEXT NOT NULL,gather TEXT NOT NULL)")
     ser=serial.Serial(value)
     h=0
     while(1):
+        b=0
+        cherv=time.time()
+        y_pos=np.array([])
+        y_pos=np.zeros(shape=(1,0))	
+        faf_last=0
+        global GPSline
+        ser.reset_input_buffer()
+        while (b < 120):
+                line=ser.readline()		
+                try:
+                        faf=int(float(line))
+                except ValueError:
+                        faf=faf_last
+                #print (faf)
+                y_pos=np.append(y_pos,faf)
+                faf_last=faf
+                b=b+1
+        su4ka=','.join(str(i) for i in y_pos)
+        start=time.time()
+        c.execute("INSERT INTO pulse(position,gather) VALUES (?,?)",(GPSline,su4ka,))
         h=h+1
-        line=ser.readline()
-        print(line)
-        c.execute("INSERT INTO GPS VALUES (?)",(line,))
-        if(h==1):
+        if(h==50):
             start=time.time()
             conn.commit()
             print(time.time()-start)
             h=0
-            """
+        while(time.time()<cherv+0.01):
+            merom=0
+        
+            
 def getGPS(threadName,value):
     conn2 = sqlite3.connect('/media/chiungachanga/SanDisk/example6.db')
     c2 = conn2.cursor()
-    
-    #ser=serial.Serial(value)
     h=0
+    global GPSline
     while(1):
         #h=h+1
         c2 = conn2.cursor()
         c2.execute("SELECT * FROM GPS ORDER BY pidar DESC LIMIT 3")
         kurwa=c2.fetchall()
         lol=kurwa[2][0]
-        print(lol)
+        GPSline=lol
+        print(GPSline)
+        
         c2.close()
-        time.sleep(0.5)
+        time.sleep(0.3)
 if __name__ == '__main__':
     import random
     root = Tk()
@@ -109,7 +125,7 @@ if __name__ == '__main__':
     list = [port.device  for port in list_ports.comports()]
     while returnValue:
         returnValue = ListBoxChoice(root, "Metal Test", "Pick one of these crazy random numbers", list).returnValue()
-        #_thread.start_new_thread( Serialreader, ("Thread-1", returnValue, ) )
+        _thread.start_new_thread( Serialreader, ("Thread-1", returnValue, ) )
         _thread.start_new_thread( getGPS, ("Thread-2", returnValue, ) )
 
        
