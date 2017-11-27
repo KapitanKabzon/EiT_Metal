@@ -3,10 +3,11 @@ import serial
 import struct
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import _thread
 from serial.tools import list_ports
-values=50
+import sqlite3
+
+
 class ListBoxChoice(object):
     def __init__(self, master=None, title=None, message=None, list=[]):
         self.master = master
@@ -64,12 +65,26 @@ class ListBoxChoice(object):
         self.master.wait_window(self.modalPane)
         return self.value
 def Serialreader(threadName,value):
-    ser=serial.Serial(value,921600)
-    #plt.show()
+    conn = sqlite3.connect('/media/chiungachanga/C7C3-942D/example6.db')
+    c = conn.cursor()
+    try:
+            c.execute('''CREATE TABLE IF NOT EXISTS GPS
+                         (pidar text)''')
+    except OperationalError:
+            print('database exists')
+    
+ppp    ser=serial.Serial(value,921600)
+    h=0
     while(1):
-        
+        h=h+1
         line=ser.readline()
         print(line)
+        c.execute("INSERT INTO GPS VALUES (?)",(line,))
+        if(h==1):
+            start=time.time()
+            conn.commit()
+            print(time.time()-start)
+            h=0
 if __name__ == '__main__':
     import random
     root = Tk()
