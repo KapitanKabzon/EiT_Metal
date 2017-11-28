@@ -60,7 +60,7 @@ void dataHandler(int s){
             if(tempArray[0][4]=='G'){
               flag=1;
             }
-            
+            // NEED TO ADD CHECK FOR FIX QUALITY
           }
         }
       }
