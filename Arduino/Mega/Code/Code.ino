@@ -1,8 +1,12 @@
-unsigned char* input0[90],input1[90]; // input0 being data from GPS and input2 being from USB
+unsigned char input0[90];
+unsigned char input1[90]; // input0 being data from GPS and input2 being from USB
 unsigned int input0count=0,input1count=0;
 char arrayStorage[3][15][15]; // arrayStorage 0 being to desired point, arrayStorage 1 being the current point, arrayStorage 2 being the Last point
 float latitude1,latitude2,longtitude1,longtitude2;
+float latitude0=54.91196082;
+float longtitude0=9.78089243;
 float course_current,course_desired;
+int kunta=0;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(921600); //serial for comm to PC
@@ -20,21 +24,25 @@ void loop() {
       input0[input0count+1]='\0';
       input0flag=1;
       input0count=0;
-    } else {
+    } else 
+    {
       input0[input0count]=blabla; // continues to add to an array when the received character is not EoL
       input0count++;
     }
   }
   if(Serial1.available()){ // Receives the byte from GPS and wait for \n to start processin the line
+    while(Serial1.available()){
     unsigned char hujesos=Serial1.read();
-    if(hujesos=='\n'){
-      input1[input1count]=hujesos;
-      input1[input1count+1]='\0';
-      input1flag=1;
-      input1count=0;
-    } else {
-      input1[input1count]=hujesos;
-      input1count++;
+      if(hujesos=='\n'){
+        input1[input1count]=hujesos;
+        input1[input1count+1]='\0';
+        input1flag=1;
+        input1count=0;
+        //Serial.write("blec");
+      } else {
+        input1[input1count]=hujesos;
+        input1count++;
+      }
     }
   }
   if(input0flag==1){
@@ -52,8 +60,7 @@ void dataHandler(int s){ // when s=0 it decodes the Desired position, when s=1 i
   int b=0; // being the counter for part eg.: GPGGA 
   int c=0; // character in the current part
   int flag=0;
-  unsigned char tempArray[15][15];
-  if(s==1){ // checking the s
+  char* tempArray[]={"$GPGGA","212755.000","5454.0705","N","00948.5455","E","1","5","2.71","1.8","M,44.6","M","","*52","a"};
     if(input1[1]=='G'){ // checks if the incoming array of bytes from GPS sensor is GPGGA type.
       if(input1[2]=='P'){
         if(input1[3]=='G'){
@@ -69,6 +76,7 @@ void dataHandler(int s){ // when s=0 it decodes the Desired position, when s=1 i
       while(input1[i]!='\0'){ // Creating an array that would have all the parts of a sentece in separate strings.
         if(input1[i]==','){ 
           tempArray[b][c]='\0';
+          //Serial.write(tempArray[b]);
           b++;
           c=0;
         } else {
@@ -78,28 +86,60 @@ void dataHandler(int s){ // when s=0 it decodes the Desired position, when s=1 i
         i++;
       }
       tempArray[b][c]='\0'; // finishing the string
+      if(kunta==3){
+      unsigned long start_time;
+      unsigned long stop_time;
+      start_time = micros();
       latitude2=latitude1; // switching the known position to previous position
       longtitude2=longtitude1;
       latitude1=conv_to_deg(atof(tempArray[2])/100.00); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss
       longtitude1=conv_to_deg(atof(tempArray[4])/100.00);
-      course_current=gps_course_to(latitude1,longtitude1,latitude2,longtitude2); // returns the current course from last two positions
-      for(int v=0;v<b+1;v++){
+      course_current=gps_course_to(latitude2,longtitude2,latitude1,longtitude1); // returns the current course from last two positions
+      float course_wanted=gps_course_to(latitude1,longtitude1,latitude0,longtitude0);
+      float distance_to=gps_distance_between(latitude1,longtitude1,latitude0,longtitude0);
+      stop_time = micros();
+      Serial.println(stop_time-start_time); 
+      Serial.println("current course \t wanted course \t distance");
+      Serial.print("\r\n");
+      printDouble(course_current,3);
+      //printDouble(1.23456,3);
+      Serial.print("\t\t\t");
+      printDouble(course_wanted,3);
+      //printDouble(7.2345,3);
+      Serial.print("\t\t\t");
+      printDouble(distance_to,3);
+      //printDouble(7.23456,3);
+      Serial.print("\r\n");
+      kunta=0;
+      }
+      kunta++;
+      /*
+      for(int v=0;v<b+2;v++){
         int h=0;
         while(tempArray[v][h]!='\0'){
           unsigned char pidaras=tempArray[v][h];
           Serial.write(pidaras);
           h++;
         }
+        Serial.write(tempArray[v]);
         if(v<b){
           Serial.write(',');
         }
+        
+        
       }
-    }
-  } else {
-    if(input0[0]=='$'){ // checks if the incoming array of bytes from RPi is NMEA sentence.
+      */
+      int counterss=0;
+      while(input1[counterss]!='\0'){
+        Serial.write(input1[counterss]);
+        counterss++;
+      }
+      for(int k=0;k<90;k++){
+        input1[k]='\0';
+      }
+      
     }
   }
-}
 
 float conv_to_deg(float dataIn)
 {
@@ -154,4 +194,30 @@ float gps_course_to(float lat1, float long1, float lat2, float long2)
     a2 += 2*3.14;
   }
   return a2 * (180.0 / 3.141592);
+}
+void printDouble( double val, byte precision){
+ // prints val with number of decimal places determine by precision
+ // precision is a number from 0 to 6 indicating the desired decimial places
+ // example: printDouble( 3.1415, 2); // prints 3.14 (two decimal places)
+
+ Serial.print (int(val));  //prints the int part
+ if( precision > 0) {
+   Serial.print("."); // print the decimal point
+   unsigned long frac;
+   unsigned long mult = 1;
+   byte padding = precision -1;
+   while(precision--)
+      mult *=10;
+     
+   if(val >= 0)
+     frac = (val - int(val)) * mult;
+   else
+     frac = (int(val)- val ) * mult;
+   unsigned long frac1 = frac;
+   while( frac1 /= 10 )
+     padding--;
+   while(  padding--)
+     Serial.print("0");
+   Serial.print(frac,DEC) ;
+ }
 }
