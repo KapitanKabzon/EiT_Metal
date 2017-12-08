@@ -2,20 +2,18 @@ import sqlite3
 import struct
 import time
 import numpy as np
-conn = sqlite3.connect('Drive.db')
+conn = sqlite3.connect('Drive2.db')
 c = conn.cursor()
 try:
-        c.execute('''CREATE TABLE IF NOT EXISTS BeenTo
-                     (GPS text)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS DriveTo(pos text)''')
+        c.execute('''CREATE TABLE IF NOT EXISTS shaitan(che text)''')
 except OperationalError:
         print('database exists')
-filepath = 'capture.txt'  
+filepath = 'snake.txt'  
 with open(filepath) as fp:  
     for cnt,line in enumerate(fp):
-        if '$GPGGA' in line:
-            if len(line)<75:
-                print(line)
-                c.execute("INSERT INTO BeenTo(GPS) VALUES (?)",(line,))
-           
+        print(line)
+        c.execute("INSERT INTO DriveTo(pos) VALUES (?)",(line,))
 
+c.execute("INSERT INTO shaitan(che) VALUES (?)",("0",))
 conn.commit()

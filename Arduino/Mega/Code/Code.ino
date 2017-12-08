@@ -46,20 +46,46 @@ void loop() {
     }
   }
   if(input0flag==1){
-    dataHandler(0);
+    dataHandler2();
   }
   if(input1flag==1){
-    dataHandler(1);
+    dataHandler();
   }
 
 
   
 }
-void dataHandler(int s){ // when s=0 it decodes the Desired position, when s=1 it decodes the current GPS position
+void dataHandler2(){
+  int flag=0;
+  int i=1;
+  char temporary1[20]="aa";
+  char temporary2[20]="aa";
+  if(input1[0]=='#'){
+    int kuk=0;
+    while(input0[i]!=','){
+      temporary1[kuk]=input0[i];
+      i++;
+      kuk++;
+    }
+    i++;
+    temporary1[kuk+1]='\0';
+    kuk=0;
+    while(input0[i]!='\n'){
+      temporary2[kuk]=input0[i];
+      i++;
+      kuk++;
+    }
+    temporary2[kuk+1]='\0';
+    latitude0=atof(temporary1);
+    longtitude0=atof(temporary2);
+  }
+}
+void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it decodes the current GPS position
   int i=0; // being the position in reading Input0
   int b=0; // being the counter for part eg.: GPGGA 
   int c=0; // character in the current part
   int flag=0;
+  float distance_to=0.00;
   char* tempArray[]={"$GPGGA","212755.000","5454.0705","N","00948.5455","E","1","5","2.71","1.8","M,44.6","M","","*52","a"};
     if(input1[1]=='G'){ // checks if the incoming array of bytes from GPS sensor is GPGGA type.
       if(input1[2]=='P'){
@@ -86,6 +112,8 @@ void dataHandler(int s){ // when s=0 it decodes the Desired position, when s=1 i
         i++;
       }
       tempArray[b][c]='\0'; // finishing the string
+      
+      
       if(kunta==3){
       unsigned long start_time;
       unsigned long stop_time;
@@ -96,45 +124,33 @@ void dataHandler(int s){ // when s=0 it decodes the Desired position, when s=1 i
       longtitude1=conv_to_deg(atof(tempArray[4])/100.00);
       course_current=gps_course_to(latitude2,longtitude2,latitude1,longtitude1); // returns the current course from last two positions
       float course_wanted=gps_course_to(latitude1,longtitude1,latitude0,longtitude0);
-      float distance_to=gps_distance_between(latitude1,longtitude1,latitude0,longtitude0);
+      distance_to=gps_distance_between(latitude1,longtitude1,latitude0,longtitude0);
       stop_time = micros();
       Serial.println(stop_time-start_time); 
       Serial.println("current course \t wanted course \t distance");
       Serial.print("\r\n");
       printDouble(course_current,3);
-      //printDouble(1.23456,3);
       Serial.print("\t\t\t");
       printDouble(course_wanted,3);
-      //printDouble(7.2345,3);
       Serial.print("\t\t\t");
       printDouble(distance_to,3);
-      //printDouble(7.23456,3);
       Serial.print("\r\n");
       kunta=0;
+      } else
+      {
+        float templat=conv_to_deg(atof(tempArray[2])/100.00); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss;
+        float templon=conv_to_deg(atof(tempArray[4])/100.00);
+        distance_to=gps_distance_between(templat,templon,latitude0,longtitude0);
+        Serial.print("Distance to point: ");
+        printDouble(distance_to,3);
       }
       kunta++;
-      /*
-      for(int v=0;v<b+2;v++){
-        int h=0;
-        while(tempArray[v][h]!='\0'){
-          unsigned char pidaras=tempArray[v][h];
-          Serial.write(pidaras);
-          h++;
-        }
-        Serial.write(tempArray[v]);
-        if(v<b){
-          Serial.write(',');
-        }
-        
-        
-      }
-      */
       int counterss=0;
-      while(input1[counterss]!='\0'){
+      while(input1[counterss]!='\0'){ // sending out the GPGGA nmea sentence
         Serial.write(input1[counterss]);
         counterss++;
       }
-      for(int k=0;k<90;k++){
+      for(int k=0;k<90;k++){ // flushing the input buffer
         input1[k]='\0';
       }
       
