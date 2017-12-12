@@ -20,22 +20,27 @@ def Serialreader(threadName,value):
     meme=0
     kekistan=1
     while(1):
-        
+        brin=0
         line=ser.readline()
         #line_as_bytes=line.decode()
         #type(line_as_bytes)
-        print(line)
+        brin=0
+        print(line.decode("utf-8"))
         if b'$GPGGA' in line: #checking if the gotten line is an GPGGA data,
             c.execute("INSERT INTO GPS VALUES (?)",(line,))
             h=h+1
-        if b'NEW' in line:
+            brin=0
+        if b'NEW' in line: #the command from Mega drive to send out new lat/lon
             g=5
             #c.execute("
-        if(h==1): # is buffer time is needed the h should be increased
+        if(h==3): # is buffer time is needed the h should be increased
             start=time.time()
             conn.commit()
-            print(time.time()-start)
+            print("\t\t\t\t\t",time.time()-start)
             h=0
+        if brin==0:
+            kurwa=1
+        """
         if meme>=9:
             c.execute("SELECT pos FROM DriveTo")
             heh=c.fetchall()
@@ -43,6 +48,8 @@ def Serialreader(threadName,value):
             kekistan=kekistan+1
             meme=0
         meme=meme+1
+        """
+        
 def serial_ports():
 
     # produce a list of all serial ports. The list contains a tuple with the port number, 

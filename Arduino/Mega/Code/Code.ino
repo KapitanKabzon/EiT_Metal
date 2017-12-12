@@ -11,6 +11,9 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(921600); //serial for comm to PC
   Serial1.begin(9600); // Serial comm for GPS
+  Serial1.write("$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n");
+  while(!Serial1.available()){int kkkk=5;}
+  Serial1.write("$PMTK220,200*2C");
 }
 
 void loop() {
@@ -114,7 +117,7 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
       tempArray[b][c]='\0'; // finishing the string
       
       
-      if(kunta==3){
+      if(kunta==50){
       unsigned long start_time;
       unsigned long stop_time;
       start_time = micros();
@@ -126,13 +129,14 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
       float course_wanted=gps_course_to(latitude1,longtitude1,latitude0,longtitude0);
       distance_to=gps_distance_between(latitude1,longtitude1,latitude0,longtitude0);
       stop_time = micros();
-      Serial.println(stop_time-start_time); 
+      //Serial.println(stop_time-start_time); 
       Serial.println("current course \t wanted course \t distance");
       Serial.print("\r\n");
       printDouble(course_current,3);
-      Serial.print("\t\t\t");
+      Serial.print("\t\t");
       printDouble(course_wanted,3);
-      Serial.print("\t\t\t");
+      Serial.print("\t\t");
+      Serial.write("Distance to: ");
       printDouble(distance_to,3);
       Serial.print("\r\n");
       kunta=0;
@@ -141,8 +145,11 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
         float templat=conv_to_deg(atof(tempArray[2])/100.00); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss;
         float templon=conv_to_deg(atof(tempArray[4])/100.00);
         distance_to=gps_distance_between(templat,templon,latitude0,longtitude0);
+        if(distance_to<1.00){
+          Serial.write("NEW\r\n");}
         Serial.print("Distance to point: ");
         printDouble(distance_to,3);
+        Serial.write("\r\n");
       }
       kunta++;
       int counterss=0;
