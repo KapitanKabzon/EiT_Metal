@@ -1,19 +1,21 @@
 unsigned char input0[90];
 unsigned char input1[90]; // input0 being data from GPS and input2 being from USB
 unsigned int input0count=0,input1count=0;
+char* tempArray[]={"$GPGGA","212755.000","5454.0705","N","00948.5455","E","1","5","2.71","1.8","M,44.6","M","f","*52","a"};
 char arrayStorage[3][15][15]; // arrayStorage 0 being to desired point, arrayStorage 1 being the current point, arrayStorage 2 being the Last point
-float latitude1,latitude2,longtitude1,longtitude2;
+float latitude1=0.00,latitude2=0.00,longtitude1=0.00,longtitude2=0.00;
 float latitude0=54.91196082;
 float longtitude0=9.78089243;
 float course_current,course_desired;
 int kunta=0;
+float distance_to=0.00;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(921600); //serial for comm to PC
   Serial1.begin(9600); // Serial comm for GPS
-  Serial1.write("$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n");
+  Serial1.write("$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\r\n"); // To only receive $GPGGA sentence from GPS sensor
   while(!Serial1.available()){int kkkk=5;}
-  Serial1.write("$PMTK220,200*2C");
+  Serial1.write("$PMTK220,1000*1F"); // Sets the update frequency from GPS, the Lat Long is update at 1Hz
 }
 
 void loop() {
@@ -36,12 +38,13 @@ void loop() {
   if(Serial1.available()){ // Receives the byte from GPS and wait for \n to start processin the line
     while(Serial1.available()){
     unsigned char hujesos=Serial1.read();
+    //Serial.write(hujesos);
       if(hujesos=='\n'){
         input1[input1count]=hujesos;
         input1[input1count+1]='\0';
         input1flag=1;
         input1count=0;
-        //Serial.write("blec");
+        
       } else {
         input1[input1count]=hujesos;
         input1count++;
@@ -89,80 +92,70 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
   int c=0; // character in the current part
   int flag=0;
   float distance_to=0.00;
-  char* tempArray[]={"$GPGGA","212755.000","5454.0705","N","00948.5455","E","1","5","2.71","1.8","M,44.6","M","","*52","a"};
-    if(input1[1]=='G'){ // checks if the incoming array of bytes from GPS sensor is GPGGA type.
-      if(input1[2]=='P'){
-        if(input1[3]=='G'){
-          if(input1[4]=='G'){
-            if(input1[5]=='A'){
-              flag=1; // setting the flag if the conditions are met
-            }
+  
+  if(input1[1]=='G'){ // checks if the incoming array of bytes from GPS sensor is GPGGA type.
+    if(input1[2]=='P'){
+      if(input1[3]=='G'){
+        if(input1[4]=='G'){
+          if(input1[5]=='A'){
+            flag=1; // setting the flag if the conditions are met
           }
         }
       }
     }
-    if(flag==1){ // analyzing the 
-      while(input1[i]!='\0'){ // Creating an array that would have all the parts of a sentece in separate strings.
-        if(input1[i]==','){ 
-          tempArray[b][c]='\0';
-          //Serial.write(tempArray[b]);
-          b++;
-          c=0;
-        } else {
-          tempArray[b][c]=input1[i];
-          c++;
-        }
-        i++;
-      }
-      tempArray[b][c]='\0'; // finishing the string
-      
-      
-      if(kunta==50){
-      unsigned long start_time;
-      unsigned long stop_time;
-      start_time = micros();
-      latitude2=latitude1; // switching the known position to previous position
-      longtitude2=longtitude1;
-      latitude1=conv_to_deg(atof(tempArray[2])/100.00); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss
-      longtitude1=conv_to_deg(atof(tempArray[4])/100.00);
-      course_current=gps_course_to(latitude2,longtitude2,latitude1,longtitude1); // returns the current course from last two positions
-      float course_wanted=gps_course_to(latitude1,longtitude1,latitude0,longtitude0);
-      distance_to=gps_distance_between(latitude1,longtitude1,latitude0,longtitude0);
-      stop_time = micros();
-      //Serial.println(stop_time-start_time); 
-      Serial.println("current course \t wanted course \t distance");
-      Serial.print("\r\n");
-      printDouble(course_current,3);
-      Serial.print("\t\t");
-      printDouble(course_wanted,3);
-      Serial.print("\t\t");
-      Serial.write("Distance to: ");
-      printDouble(distance_to,3);
-      Serial.print("\r\n");
-      kunta=0;
-      } else
-      {
-        float templat=conv_to_deg(atof(tempArray[2])/100.00); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss;
-        float templon=conv_to_deg(atof(tempArray[4])/100.00);
-        distance_to=gps_distance_between(templat,templon,latitude0,longtitude0);
-        if(distance_to<1.00){
-          Serial.write("NEW\r\n");}
-        Serial.print("Distance to point: ");
-        printDouble(distance_to,3);
-        Serial.write("\r\n");
-      }
-      kunta++;
-      int counterss=0;
-      while(input1[counterss]!='\0'){ // sending out the GPGGA nmea sentence
-        Serial.write(input1[counterss]);
-        counterss++;
-      }
-      for(int k=0;k<90;k++){ // flushing the input buffer
-        input1[k]='\0';
-      }
-      
-    }
   }
+  if(flag==1){ // analyzing the 
+    while(input1[i]!='\0'){ // Creating an array that would have all the parts of a sentece in separate strings.
+      if(input1[i]==','){ 
+        tempArray[b][c]='\0';
+        //Serial.write(tempArray[b]);
+        b++;
+        c=0;
+      } else {
+        tempArray[b][c]=input1[i];
+        c++;
+      }
+      i++;
+    }
+    tempArray[b][c]='\0'; // finishing the string
+    int counterss=0;    
+    for(int kuk=0;kuk<15;kuk++){
+      Serial.write(tempArray[kuk]);
+      if( kuk==14){}else{
+        Serial.write(',');
+      }
+    }
+    if(atof(tempArray[6])>0){
+      float templat=conv_to_deg(atof(tempArray[2])/100.00); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss;
+      float templon=conv_to_deg(atof(tempArray[4])/100.00);
+      distance_to=gps_distance_between(templat,templon,latitude1,longtitude1);
+      Serial.write("kek: ");
+      printDouble(distance_to,4);
+      Serial.write("latitude: ");
+      printDouble(atof(tempArray[2]),4);
+      Serial.write("  longtitude: ");
+      printDouble(atof(tempArray[4]),4);
+      Serial.write("\r\n");
+      Serial.write("faf: ");
+      printDouble(distance_to,4);
+      Serial.write("latitude: ");
+      printDouble(latitude1,4);
+      Serial.write("  longtitude: ");
+      printDouble(longtitude1,4);
+      Serial.write("\r\n");
+      if(distance_to>2){
+        Serial.write("BITCHIN\r\n");
+        float course_current=gps_course_to(latitude1,longtitude1,templat,templon);
+        Serial.write("\t\t");
+        printDouble(course_current,4);
+        Serial.write("\r\n");
+        latitude1=templat;
+        longtitude1=templon;
+      } 
+    }else {Serial.println("NO GPS FIX");}
+  }
+}
+  
 
 float conv_to_deg(float dataIn)
 {
