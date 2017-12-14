@@ -1,12 +1,13 @@
 unsigned char input0[90];
 unsigned char input1[90]; // input0 being data from GPS and input2 being from USB
 unsigned int input0count=0,input1count=0;
-char* tempArray[]={"$GPGGA","212755.000","5454.0705","N","00948.5455","E","1","5","2.71","1.8","M,44.6","M","f","*52","a"};
+char* tempArray[]={"$GPGGA","212755.000","5454.07050","Na","00948.54505","E0","100","005","20.71","1.80","M","44.6","M","f","*52","a"};
 char arrayStorage[3][15][15]; // arrayStorage 0 being to desired point, arrayStorage 1 being the current point, arrayStorage 2 being the Last point
 float latitude1=0.00,latitude2=0.00,longtitude1=0.00,longtitude2=0.00;
 float latitude0=54.91196082;
 float longtitude0=9.78089243;
 float course_current,course_desired;
+float templon,templat;
 int kunta=0;
 float distance_to=0.00;
 void setup() {
@@ -91,7 +92,6 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
   int b=0; // being the counter for part eg.: GPGGA 
   int c=0; // character in the current part
   int flag=0;
-  float distance_to=0.00;
   
   if(input1[1]=='G'){ // checks if the incoming array of bytes from GPS sensor is GPGGA type.
     if(input1[2]=='P'){
@@ -116,8 +116,13 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
         c++;
       }
       i++;
+      if(b==5&&c==0){
+        Serial.write(tempArray[4]);
+        Serial.write("\r\n");
+      }
     }
     tempArray[b][c]='\0'; // finishing the string
+    /*
     int counterss=0;    
     for(int kuk=0;kuk<15;kuk++){
       Serial.write(tempArray[kuk]);
@@ -125,16 +130,24 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
         Serial.write(',');
       }
     }
+    int llll=0;
+    while(input1[llll]!='\0'){
+      Serial.write(input1[llll]);
+      llll++;
+    }
+    Serial.write("\r\n");
+    */
     if(atof(tempArray[6])>0){
-      float templat=conv_to_deg(atof(tempArray[2])/100.00); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss;
-      float templon=conv_to_deg(atof(tempArray[4])/100.00);
+      templat=conv_to_deg(atof(tempArray[2])); // converting the new String of latitude to degrees, as it originally comes in HH:mm:ss;
+      templon=conv_to_deg(atof(tempArray[4]));
       distance_to=gps_distance_between(templat,templon,latitude1,longtitude1);
-      Serial.write("kek: ");
+      /*
+      Serial.write("lel: \r\n"); // Not being printed, BUG
       printDouble(distance_to,4);
       Serial.write("latitude: ");
-      printDouble(atof(tempArray[2]),4);
+      printDouble(conv_to_deg(atof(tempArray[2])),4);
       Serial.write("  longtitude: ");
-      printDouble(atof(tempArray[4]),4);
+      printDouble(conv_to_deg(atof(tempArray[4])),4);
       Serial.write("\r\n");
       Serial.write("faf: ");
       printDouble(distance_to,4);
@@ -143,30 +156,40 @@ void dataHandler(){ // when s=0 it decodes the Desired position, when s=1 it dec
       Serial.write("  longtitude: ");
       printDouble(longtitude1,4);
       Serial.write("\r\n");
-      if(distance_to>2){
+      */
+      if(distance_to>20){ // How often should the heading be updated.
+        int llll=0;
+        while(input1[llll]!='\0'){
+          Serial.write(input1[llll]); // Printing the current NMEA sentence
+          llll++;
+        }
+        Serial.write("\r\n");
+    /*
         Serial.write("BITCHIN\r\n");
         float course_current=gps_course_to(latitude1,longtitude1,templat,templon);
         Serial.write("\t\t");
-        printDouble(course_current,4);
+        */
+        printDouble(course_current,4); // Prints the current course
         Serial.write("\r\n");
-        latitude1=templat;
+        
+        latitude1=templat; // updates the previous latitude, longitude with new values
         longtitude1=templon;
       } 
     }else {Serial.println("NO GPS FIX");}
+    for(int uu=0;uu<16;uu++){
+      tempArray[uu][0]='\0';
+    }
+   
   }
 }
   
 
-float conv_to_deg(float dataIn)
+float conv_to_deg(float dataIn) // input being 0103.523 meaning 01 is deg and 03 minutes and 52.3seconds
 {
-  int i=0;
-  int nein=0;
-  while(nein==0){
-    if(dataIn-i>1){i++;} else {nein=1;}
-  }
-  float blet=dataIn-i;
-  blet=blet*1.66666+i;
-  return blet;
+
+  int chen=dataIn/100; // getting the degree part from input
+  float temp=(dataIn-chen*100)/60.00;
+  return (temp+chen);
 }
 float gps_distance_between (float lat1, float long1, float lat2, float long2)
 {
@@ -198,18 +221,18 @@ float gps_course_to(float lat1, float long1, float lat2, float long2)
   // both specified as signed decimal-degrees latitude and longitude.
   // Because Earth is no exact sphere, calculated course may be off by a tiny fraction.
   // Courtesy of Maarten Lamers
-  float dlon = ((long2 - long1) * 71) / 4068;
-  lat1 = (lat1 * 71) / 4068;
-  lat2 = (lat2 * 71) / 4068;
+  float dlon = radians(long2-long1);
+  lat1 = radians(lat1);
+  lat2 = radians(lat2);
   float a1 = sin(dlon) * cos(lat2);
   float a2 = sin(lat1) * cos(lat2) * cos(dlon);
   a2 = cos(lat1) * sin(lat2) - a2;
   a2 = atan2(a1, a2);
   if (a2 < 0.0)
   {
-    a2 += 2*3.14;
+    a2 += TWO_PI;
   }
-  return a2 * (180.0 / 3.141592);
+  return degrees(a2);
 }
 void printDouble( double val, byte precision){
  // prints val with number of decimal places determine by precision
